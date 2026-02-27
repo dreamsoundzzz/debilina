@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bubble Stacking Demo - AI Playground</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+    }
+    
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    
+    #canvas {
+      display: block;
+      margin: 20px auto;
+      background: #87CEEB;
+      border: 2px solid #333;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .controls {
+      text-align: center;
+      margin: 20px;
+    }
+    
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      transition: background 0.3s;
+    }
+    
+    button:hover {
+      background: #45a049;
+    }
+    
+    button:active {
+      transform: translateY(1px);
+    }
+    
+    .info {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 15px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .info h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    
+    .info ul {
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <h1>Text Bubble Stacking Demo</h1>
+  
+  <canvas id="canvas" width="1000" height="600"></canvas>
+  
+  <div class="controls">
+    <button onclick="aliceSpeaks()">Alice Speaks</button>
+    <button onclick="bobSpeaks()">Bob Speaks</button>
+    <button onclick="bothSpeak()">Both Speak</button>
+    <button onclick="aliceThinks()">Alice Thinks</button>
+    <button onclick="conversation()">Start Conversation</button>
+    <button onclick="clearBubbles()">Clear All</button>
+  </div>
+  
+  <div class="info">
+    <h2>Features Demonstrated:</h2>
+    <ul>
+      <li><strong>Requirement 10.14:</strong> Character name labels displayed above each bubble</li>
+      <li><strong>Requirement 10.15:</strong> Multiple bubbles stack vertically without overlapping</li>
+      <li>Different bubble styles for speech (solid) vs thoughts (dashed)</li>
+      <li>Automatic bubble expiration after 8 seconds with fade-out</li>
+      <li>Support for multiple simultaneous speakers</li>
+    </ul>
+  </div>
+
+  <script type="module">
+    import { TextBubble } from '../src/core/TextBubble.js';
+    import { BubbleManager } from '../src/core/BubbleManager.js';
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Create mock characters
+    const alice = {
+      name: 'Alice',
+      head: {
+        position: { x: 300, y: 400 }
+      }
+    };
+
+    const bob = {
+      name: 'Bob',
+      head: {
+        position: { x: 700, y: 400 }
+      }
+    };
+
+    // Create bubble manager
+    const bubbleManager = new BubbleManager();
+
+    // Animation loop
+    let lastTime = 0;
+    function animate(currentTime) {
+      const dt = (currentTime - lastTime) / 1000;
+      lastTime = currentTime;
+
+      // Clear canvas
+      ctx.fillStyle = '#87CEEB';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw ground
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(0, 500, canvas.width, 100);
+
+      // Draw characters (simple stick figures)
+      drawCharacter(ctx, alice);
+      drawCharacter(ctx, bob);
+
+      // Update and render bubbles
+      bubbleManager.update(dt);
+      bubbleManager.render(ctx);
+
+      requestAnimationFrame(animate);
+    }
+
+    function drawCharacter(ctx, character) {
+      const pos = character.head.position;
+      
+      ctx.save();
+      
+      // Head
+      ctx.fillStyle = '#FFD700';
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, 20, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'black';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Body
+      ctx.strokeStyle = 'black';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y + 20);
+      ctx.lineTo(pos.x, pos.y + 80);
+      ctx.stroke();
+      
+      // Arms
+      ctx.beginPath();
+      ctx.moveTo(pos.x - 30, pos.y + 40);
+      ctx.lineTo(pos.x, pos.y + 30);
+      ctx.lineTo(pos.x + 30, pos.y + 40);
+      ctx.stroke();
+      
+      // Legs
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y + 80);
+      ctx.lineTo(pos.x - 20, pos.y + 120);
+      ctx.moveTo(pos.x, pos.y + 80);
+      ctx.lineTo(pos.x + 20, pos.y + 120);
+      ctx.stroke();
+      
+      ctx.restore();
+    }
+
+    // Button handlers
+    window.aliceSpeaks = function() {
+      const messages = [
+        "Hello everyone!",
+        "How are you doing today?",
+        "The weather is nice!",
+        "I'm having a great time!"
+      ];
+      const msg = messages[Math.floor(Math.random() * messages.length)];
+      const bubble = new TextBubble(alice, msg, 'speech');
+      bubbleManager.addBubble(bubble, alice);
+    };
+
+    window.bobSpeaks = function() {
+      const messages = [
+        "Hi there!",
+        "I'm doing well, thanks!",
+        "Yes, it's beautiful!",
+        "Me too!"
+      ];
+      const msg = messages[Math.floor(Math.random() * messages.length)];
+      const bubble = new TextBubble(bob, msg, 'speech');
+      bubbleManager.addBubble(bubble, bob);
+    };
+
+    window.bothSpeak = function() {
+      const bubble1 = new TextBubble(alice, "Look at this!", 'speech');
+      const bubble2 = new TextBubble(bob, "That's amazing!", 'speech');
+      bubbleManager.addBubble(bubble1, alice);
+      bubbleManager.addBubble(bubble2, bob);
+    };
+
+    window.aliceThinks = function() {
+      const thoughts = [
+        "I wonder what Bob is thinking...",
+        "This is quite interesting...",
+        "I should say something...",
+        "What a lovely day..."
+      ];
+      const thought = thoughts[Math.floor(Math.random() * thoughts.length)];
+      const bubble = new TextBubble(alice, thought, 'thought');
+      bubbleManager.addBubble(bubble, alice);
+    };
+
+    window.conversation = function() {
+      // Simulate a conversation with stacked bubbles
+      setTimeout(() => {
+        const bubble = new TextBubble(alice, "Hey Bob, how's it going?", 'speech');
+        bubbleManager.addBubble(bubble, alice);
+      }, 0);
+
+      setTimeout(() => {
+        const bubble = new TextBubble(bob, "Pretty good! How about you?", 'speech');
+        bubbleManager.addBubble(bubble, bob);
+      }, 1500);
+
+      setTimeout(() => {
+        const bubble = new TextBubble(alice, "Great! Want to grab lunch?", 'speech');
+        bubbleManager.addBubble(bubble, alice);
+      }, 3000);
+
+      setTimeout(() => {
+        const bubble = new TextBubble(bob, "Sure, sounds good!", 'speech');
+        bubbleManager.addBubble(bubble, bob);
+      }, 4500);
+
+      setTimeout(() => {
+        const bubble = new TextBubble(alice, "I'm really enjoying this conversation", 'thought');
+        bubbleManager.addBubble(bubble, alice);
+      }, 5000);
+    };
+
+    window.clearBubbles = function() {
+      bubbleManager.clear();
+    };
+
+    // Start animation
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

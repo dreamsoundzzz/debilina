@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Locomotion System Demo</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #1a1a1a;
+      color: #fff;
+    }
+    
+    #canvas {
+      border: 2px solid #333;
+      background: #0a0a0a;
+      display: block;
+      margin: 20px auto;
+    }
+    
+    .controls {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #2a2a2a;
+      border-radius: 8px;
+    }
+    
+    .controls h2 {
+      margin-top: 0;
+    }
+    
+    .control-group {
+      margin: 15px 0;
+    }
+    
+    .control-group label {
+      display: inline-block;
+      width: 150px;
+    }
+    
+    .control-group input[type="range"] {
+      width: 200px;
+    }
+    
+    .control-group span {
+      display: inline-block;
+      width: 60px;
+      text-align: right;
+    }
+    
+    .instructions {
+      margin-top: 20px;
+      padding: 15px;
+      background: #333;
+      border-radius: 4px;
+    }
+    
+    .instructions h3 {
+      margin-top: 0;
+    }
+    
+    .instructions ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <h2>Locomotion System Demo</h2>
+    
+    <div class="control-group">
+      <label>Walk Speed:</label>
+      <input type="range" id="walkSpeed" min="50" max="500" value="200" step="10">
+      <span id="walkSpeedValue">200</span>
+    </div>
+    
+    <div class="control-group">
+      <label>Step Height:</label>
+      <input type="range" id="stepHeight" min="5" max="40" value="15" step="1">
+      <span id="stepHeightValue">15</span>
+    </div>
+    
+    <div class="control-group">
+      <label>Step Length:</label>
+      <input type="range" id="stepLength" min="10" max="60" value="30" step="5">
+      <span id="stepLengthValue">30</span>
+    </div>
+    
+    <div class="control-group">
+      <label>Step Frequency:</label>
+      <input type="range" id="stepFrequency" min="0.5" max="5" value="2" step="0.1">
+      <span id="stepFrequencyValue">2.0</span>
+    </div>
+    
+    <div class="instructions">
+      <h3>Controls:</h3>
+      <ul>
+        <li><strong>A</strong> or <strong>Left Arrow</strong> - Walk left</li>
+        <li><strong>D</strong> or <strong>Right Arrow</strong> - Walk right</li>
+        <li><strong>Space</strong> - Toggle ground/airborne (to test grounded requirement)</li>
+        <li>Adjust sliders to see how parameters affect walking animation</li>
+      </ul>
+    </div>
+  </div>
+  
+  <canvas id="canvas" width="800" height="600"></canvas>
+  
+  <script type="module" src="locomotion-demo.js"></script>
+</body>
+</html>

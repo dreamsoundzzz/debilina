@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Rendering Demo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="info">
+        <h3>Character Rendering Demo</h3>
+        <p>Task 5.3: Character rendering with joints and z-ordering</p>
+        <p>Press SPACE to apply random forces</p>
+    </div>
+
+    <script type="module">
+        import { Vec2 } from '../src/physics/Vec2.js';
+        import { Character } from '../src/physics/Character.js';
+        import { Renderer } from '../src/core/Renderer.js';
+
+        // Setup
+        const canvas = document.getElementById('canvas');
+        const renderer = new Renderer(canvas);
+        
+        // Create character
+        const character = new Character(new Vec2(400, 300), 'TestCharacter');
+        
+        // Apply gravity
+        const gravity = new Vec2(0, 980); // 980 px/s^2 (9.8 m/s^2)
+        
+        // Pin the torso initially to see the ragdoll hang
+        character.torso.pin();
+        
+        // Game loop
+        let lastTime = 0;
+        function gameLoop(currentTime) {
+            const dt = Math.min((currentTime - lastTime) / 1000, 0.016); // Cap at 60 FPS
+            lastTime = currentTime;
+            
+            // Apply gravity to all body parts
+            for (const part of character.bodyParts) {
+                if (part.isDynamic) {
+                    part.applyForce(gravity.mul(part.mass * dt));
+                }
+            }
+            
+            // Update physics
+            character.update(dt);
+            
+            // Solve constraints multiple times for stability
+            for (let i = 0; i < 5; i++) {
+                character.solveConstraints();
+            }
+            
+            // Render
+            renderer.beginFrame();
+            renderer.renderCharacter(character);
+            renderer.endFrame();
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Start the loop
+        requestAnimationFrame(gameLoop);
+        
+        // Add interactivity
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                // Apply random forces to body parts
+                for (const part of character.bodyParts) {
+                    const randomForce = new Vec2(
+                        (Math.random() - 0.5) * 10000,
+                        (Math.random() - 0.5) * 10000
+                    );
+                    part.applyForce(randomForce);
+                }
+            }
+            
+            if (e.code === 'KeyP') {
+                // Toggle torso pin
+                if (character.torso.isDynamic) {
+                    character.torso.pin();
+                } else {
+                    character.torso.unpin();
+                }
+            }
+        });
+        
+        // Mouse interaction - drag body parts
+        let draggedPart = null;
+        let mousePos = new Vec2(0, 0);
+        
+        canvas.addEventListener('mousedown', (e) => {
+            mousePos = new Vec2(e.clientX, e.clientY);
+            
+            // Find closest body part
+            let closestPart = null;
+            let closestDist = Infinity;
+            
+            for (const part of character.bodyParts) {
+                const dist = part.position.distanceTo(mousePos);
+                if (dist < part.radius + 20 && dist < closestDist) {
+                    closestPart = part;
+                    closestDist = dist;
+                }
+            }
+            
+            if (closestPart) {
+                draggedPart = closestPart;
+                draggedPart.pin();
+            }
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            mousePos = new Vec2(e.clientX, e.clientY);
+            
+            if (draggedPart) {
+                draggedPart.setPosition(mousePos);
+            }
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            if (draggedPart) {
+                draggedPart.unpin();
+                draggedPart = null;
+            }
+        });
+    </script>
+</body>
+</html>

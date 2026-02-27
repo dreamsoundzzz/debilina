@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vision System Occlusion Demo</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #1a1a1a;
+      color: #fff;
+    }
+    #canvas {
+      border: 2px solid #444;
+      background: #2a2a2a;
+      display: block;
+      margin: 20px auto;
+    }
+    .info {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #333;
+      border-radius: 8px;
+    }
+    h1 {
+      text-align: center;
+      color: #4CAF50;
+    }
+    .controls {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin: 20px 0;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      border: 1px solid #fff;
+    }
+  </style>
+</head>
+<body>
+  <h1>Vision System Line-of-Sight Occlusion Demo</h1>
+  
+  <div class="info">
+    <p><strong>Requirements 7.2, 7.5, 7.6:</strong> Objects block line-of-sight, vision updates with head rotation, and FOV cone is visualized.</p>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color" style="background: #4CAF50;"></div>
+        <span>NPC (Observer)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: #2196F3;"></div>
+        <span>Visible Objects</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: #666;"></div>
+        <span>Occluded Objects</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: rgba(255, 255, 0, 0.15);"></div>
+        <span>FOV Cone</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: rgba(255, 0, 255, 0.5);"></div>
+        <span>Non-blocking (Transparent)</span>
+      </div>
+    </div>
+    <div class="controls">
+      <p><strong>Move your mouse</strong> to rotate the NPC's head and see the vision cone update in real-time!</p>
+      <p>The NPC can see the wall and transparent objects, but NOT the boxes hidden behind the wall.</p>
+    </div>
+  </div>
+
+  <canvas id="canvas" width="800" height="600"></canvas>
+
+  <script type="module">
+    import { VisionSystem } from '../src/ai/VisionSystem.js';
+    import { Vec2 } from '../src/physics/Vec2.js';
+    import { Character } from '../src/physics/Character.js';
+    import { GameObject } from '../src/game/GameObject.js';
+    import { Renderer } from '../src/core/Renderer.js';
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Create renderer
+    const renderer = new Renderer(canvas);
+
+    // Create NPC character
+    const npc = new Character(new Vec2(100, 300), 'NPC');
+    
+    // Create vision system
+    const visionSystem = new VisionSystem(120, 500, 25);
+
+    // Create test objects
+    const entities = [
+      // Blocking wall in the middle
+      new GameObject('wall', {
+        size: { width: 60, height: 200 },
+        blocksVision: true
+      }, new Vec2(350, 300)),
+
+      // Objects behind the wall (should be occluded)
+      new GameObject('hidden-box-1', {
+        size: { width: 40, height: 40 },
+        blocksVision: true
+      }, new Vec2(500, 250)),
+
+      new GameObject('hidden-box-2', {
+        size: { width: 40, height: 40 },
+        blocksVision: true
+      }, new Vec2(550, 350)),
+
+      // Objects to the side (should be visible)
+      new GameObject('visible-box-1', {
+        size: { width: 30, height: 30 },
+        blocksVision: true
+      }, new Vec2(300, 150)),
+
+      new GameObject('visible-box-2', {
+        size: { width: 30, height: 30 },
+        blocksVision: true
+      }, new Vec2(400, 480)),
+
+      // Transparent object in front of wall (should be visible, doesn't block)
+      new GameObject('transparent', {
+        radius: 25,
+        blocksVision: false
+      }, new Vec2(250, 300)),
+
+      // Object behind transparent (should be visible through transparent)
+      new GameObject('behind-transparent', {
+        radius: 20,
+        blocksVision: true
+      }, new Vec2(280, 300))
+    ];
+
+    // Track mouse for head rotation
+    let mousePos = new Vec2(400, 300);
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mousePos = new Vec2(e.clientX - rect.left, e.clientY - rect.top);
+    });
+
+    function updateHeadRotation() {
+      // Make head look toward mouse
+      const headToMouse = mousePos.sub(npc.head.position);
+      const targetHeadPos = npc.torso.position.add(headToMouse.normalize().mul(20));
+      
+      // Smoothly move head toward target
+      npc.head.position = npc.head.position.add(
+        targetHeadPos.sub(npc.head.position).mul(0.1)
+      );
+    }
+
+    function drawRays() {
+      const headPos = npc.head.position;
+      const facingAngle = visionSystem.getHeadFacingAngle(npc);
+      const fov = visionSystem.fov;
+      const range = visionSystem.range;
+      const rayCount = visionSystem.rayCount;
+
+      ctx.strokeStyle = 'rgba(255, 255, 0, 0.15)';
+      ctx.lineWidth = 1;
+
+      const angleStep = fov / (rayCount - 1);
+      const startAngle = facingAngle - fov / 2;
+
+      for (let i = 0; i < rayCount; i++) {
+        const angle = startAngle + angleStep * i;
+        const rayDir = Vec2.fromAngle(angle);
+        const endPoint = headPos.add(rayDir.mul(range));
+
+        ctx.beginPath();
+        ctx.moveTo(headPos.x, headPos.y);
+        ctx.lineTo(endPoint.x, endPoint.y);
+        ctx.stroke();
+      }
+    }
+
+    function drawCharacter() {
+      // Draw NPC
+      ctx.fillStyle = '#4CAF50';
+      ctx.strokeStyle = '#2E7D32';
+      ctx.lineWidth = 2;
+
+      // Head
+      ctx.beginPath();
+      ctx.arc(npc.head.position.x, npc.head.position.y, npc.head.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Torso
+      ctx.fillRect(
+        npc.torso.position.x - 15,
+        npc.torso.position.y - 25,
+        30,
+        50
+      );
+      ctx.strokeRect(
+        npc.torso.position.x - 15,
+        npc.torso.position.y - 25,
+        30,
+        50
+      );
+
+      // Label
+      ctx.fillStyle = '#fff';
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('NPC', npc.head.position.x, npc.head.position.y - 30);
+    }
+
+    function drawObjects(visibleEntities) {
+      for (const entity of entities) {
+        const isVisible = visibleEntities.includes(entity);
+        
+        // Determine color based on visibility and type
+        let fillColor, strokeColor;
+        if (entity.blocksVision === false) {
+          // Transparent objects
+          fillColor = 'rgba(255, 0, 255, 0.3)';
+          strokeColor = '#FF00FF';
+        } else if (isVisible) {
+          // Visible blocking objects
+          fillColor = '#2196F3';
+          strokeColor = '#1565C0';
+        } else {
+          // Occluded objects
+          fillColor = '#666';
+          strokeColor = '#444';
+        }
+
+        ctx.fillStyle = fillColor;
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 2;
+
+        if (entity.shape === 'circle') {
+          ctx.beginPath();
+          ctx.arc(entity.position.x, entity.position.y, entity.radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        } else if (entity.shape === 'rect') {
+          const x = entity.position.x - entity.size.width / 2;
+          const y = entity.position.y - entity.size.height / 2;
+          ctx.fillRect(x, y, entity.size.width, entity.size.height);
+          ctx.strokeRect(x, y, entity.size.width, entity.size.height);
+        }
+
+        // Label
+        ctx.fillStyle = isVisible ? '#fff' : '#999';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'center';
+        const label = isVisible ? '✓ Visible' : '✗ Hidden';
+        ctx.fillText(label, entity.position.x, entity.position.y - (entity.radius || entity.size.height / 2) - 8);
+      }
+    }
+
+    function render() {
+      // Clear canvas
+      ctx.fillStyle = '#2a2a2a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Update head rotation to follow mouse
+      updateHeadRotation();
+
+      // Update vision system
+      const visibleEntities = visionSystem.update(npc, entities, Date.now());
+
+      // Draw FOV cone visualization (Requirement 7.6)
+      const fovData = visionSystem.getFOVConeData(npc);
+      renderer.renderFOVCone(fovData);
+
+      // Draw vision rays
+      drawRays();
+
+      // Draw objects
+      drawObjects(visibleEntities);
+
+      // Draw character
+      drawCharacter();
+
+      // Draw stats
+      ctx.fillStyle = '#fff';
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'left';
+      ctx.fillText(`Visible Entities: ${visibleEntities.length} / ${entities.length}`, 10, 20);
+      ctx.fillText(`FOV: ${visionSystem.getFOV()}°`, 10, 40);
+      ctx.fillText(`Range: ${visionSystem.getRange()}px`, 10, 60);
+      ctx.fillText(`Head Angle: ${(visionSystem.getHeadFacingAngle(npc) * 180 / Math.PI).toFixed(1)}°`, 10, 80);
+      ctx.fillText('Move mouse to rotate NPC head', 10, 100);
+
+      requestAnimationFrame(render);
+    }
+
+    render();
+  </script>
+</body>
+</html>

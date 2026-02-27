@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object Spawning Demo - AI Playground</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: white;
+        }
+        
+        #container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+        }
+        
+        #gameCanvas {
+            display: block;
+            margin: 20px auto;
+            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 50%, #90EE90 100%);
+            border: 3px solid #333;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        #controls {
+            background-color: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        #controls h2 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+        
+        .control-section {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #333;
+            border-radius: 4px;
+        }
+        
+        .control-section h3 {
+            margin-top: 0;
+            color: #FFA726;
+        }
+        
+        .key {
+            display: inline-block;
+            background-color: #555;
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin: 2px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        
+        #fps-counter {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        .feature {
+            color: #81C784;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>🎮 Object Spawning & Removal Demo</h1>
+        
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div id="controls">
+            <h2>Controls</h2>
+            
+            <div class="control-section">
+                <h3>Spawn Menu</h3>
+                <p><span class="key">SPACE</span> - Toggle spawn menu</p>
+                <p class="feature">✓ Click category tabs to switch between object types</p>
+                <p class="feature">✓ Click an object to select it</p>
+                <p class="feature">✓ Click on canvas to spawn selected object</p>
+            </div>
+            
+            <div class="control-section">
+                <h3>Object Removal</h3>
+                <p><span class="key">RIGHT CLICK</span> - Remove object at cursor</p>
+                <p class="feature">✓ Right-click any spawned object to remove it</p>
+                <p class="feature">✓ Only removes one object at a time (top-most)</p>
+            </div>
+            
+            <div class="control-section">
+                <h3>Available Objects</h3>
+                <p><strong>Basic:</strong> Box, Ball, Platform, Ramp, Barrel</p>
+                <p><strong>Melee:</strong> Sword, Axe, Mace, Stick, Dagger</p>
+                <p><strong>Ranged:</strong> Pistol, Rifle</p>
+                <p><strong>Special:</strong> Flamethrower, Chainsaw</p>
+                <p><strong>Hazards:</strong> Gasoline Canister</p>
+                <p><strong>Consumables:</strong> Apple, Bread, Water, Soda, Meat</p>
+            </div>
+            
+            <div class="control-section">
+                <h3>Features Demonstrated</h3>
+                <p class="feature">✓ Requirement 8.3: Spawn objects at click position</p>
+                <p class="feature">✓ Requirement 8.6: Remove objects on right-click</p>
+                <p class="feature">✓ Requirement 15.2: Toggle menu with spacebar</p>
+                <p class="feature">✓ Physics simulation with gravity</p>
+                <p class="feature">✓ 20+ different object types</p>
+            </div>
+        </div>
+    </div>
+    
+    <div id="fps-counter">FPS: 0</div>
+    
+    <script type="module">
+        import { GameEngine } from '../src/core/GameEngine.js';
+        import { SpawnMenu } from '../src/game/SpawnMenu.js';
+        import { InputHandler } from '../src/core/InputHandler.js';
+        import { ObjectManager } from '../src/game/ObjectManager.js';
+        
+        // Initialize game
+        const canvas = document.getElementById('gameCanvas');
+        const game = new GameEngine(canvas);
+        
+        // Create systems
+        const inputHandler = new InputHandler(canvas);
+        const spawnMenu = new SpawnMenu(game);
+        const objectManager = new ObjectManager(spawnMenu, inputHandler);
+        
+        // Register object manager as a system
+        game.registerSystem(objectManager);
+        
+        // Add instructions overlay
+        const instructionsSystem = {
+            render(ctx) {
+                if (!spawnMenu.isOpen) {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    ctx.fillRect(10, 10, 300, 80);
+                    
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.fillText('Press SPACE to open spawn menu', 20, 35);
+                    
+                    ctx.font = '14px Arial';
+                    ctx.fillText('Left Click: Spawn object', 20, 60);
+                    ctx.fillText('Right Click: Remove object', 20, 80);
+                }
+            }
+        };
+        
+        game.registerSystem(instructionsSystem);
+        
+        // Start the game
+        game.start();
+        
+        console.log('Object Spawning Demo initialized!');
+        console.log('Press SPACE to open the spawn menu');
+    </script>
+</body>
+</html>
